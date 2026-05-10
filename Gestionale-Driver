@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VED Driver">
+<title>Venice Executive Driver — Gestionale</title>
+<style>
+  :root {
+    --gold: #C9A84C; --gold-light: #E8D5A3; --gold-dark: #9A7A2E;
+    --black: #0A0A0A; --dark: #111111; --dark2: #1A1A1A; --dark3: #242424; --dark4: #2E2E2E;
+    --text: #F5F5F0; --text2: #A0A090; --text3: #6A6A60;
+    --border: #2A2A28; --border2: #333330;
+    --success: #4CAF7D; --danger: #E05555; --warning: #E09030; --info: #5B9BD5;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--black); color: var(--text); min-height: 100vh; max-width: 480px; margin: 0 auto; }
+
+  .top-bar { background: var(--dark); padding: 16px 18px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .salon-name { font-size: 17px; font-weight: 800; letter-spacing: 0.1em; background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .salon-sub { font-size: 9px; color: var(--text3); letter-spacing: 0.18em; text-transform: uppercase; margin-top: 1px; }
+  .top-date { font-size: 12px; color: var(--text3); }
+
+  .nav-tabs { display: flex; background: var(--dark); border-bottom: 1px solid var(--border); position: sticky; top: 63px; z-index: 10; }
+  .nav-tab { flex: 1; padding: 10px 2px 8px; font-size: 9px; color: var(--text3); text-align: center; cursor: pointer; border: none; background: transparent; display: flex; flex-direction: column; align-items: center; gap: 3px; border-bottom: 2px solid transparent; letter-spacing: 0.04em; text-transform: uppercase; }
+  .nav-tab svg { width: 18px; height: 18px; }
+  .nav-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+  .screen { display: none; padding: 16px; }
+  .screen.active { display: block; }
+
+  /* DAY TOTAL */
+  .day-total { background: var(--dark); border-radius: var(--radius); padding: 16px 18px; display: flex; justify-content: space-between; margin-bottom: 14px; border: 1px solid var(--border); position: relative; overflow: hidden; }
+  .day-total::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--gold-dark), var(--gold-light), var(--gold-dark)); }
+  .day-total .label { font-size: 10px; color: var(--text3); margin-bottom: 4px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .day-total .value { font-size: 22px; font-weight: 700; color: var(--text); }
+  .day-total .profit { font-size: 20px; font-weight: 700; color: var(--success); }
+
+  .stat-mini-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+  .stat-mini { background: var(--dark); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; text-align: center; }
+  .stat-mini-val { font-size: 18px; font-weight: 700; color: var(--text); }
+  .stat-mini-lbl { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+  .cat-label { font-size: 10px; font-weight: 700; color: var(--gold); text-transform: uppercase; letter-spacing: 0.14em; margin: 16px 0 10px; display: flex; align-items: center; gap: 10px; }
+  .cat-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* CORSA CARD */
+  .corsa-card { background: var(--dark); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; position: relative; overflow: hidden; cursor: pointer; transition: border-color 0.15s; }
+  .corsa-card:active { border-color: var(--gold); }
+  .corsa-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+  .corsa-card.prenotata::before { background: var(--gold); }
+  .corsa-card.completata::before { background: var(--success); }
+  .corsa-card.annullata::before { background: var(--text3); opacity: 0.4; }
+  .corsa-card.online::after { content: '🌐'; position: absolute; top: 12px; right: 14px; font-size: 12px; }
+  .corsa-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; padding-right: 24px; }
+  .corsa-cliente { font-size: 15px; font-weight: 700; color: var(--text); }
+  .corsa-stato { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.05em; flex-shrink: 0; }
+  .corsa-stato.prenotata  { background: #1A1500; color: var(--gold); }
+  .corsa-stato.completata { background: #0D1A12; color: var(--success); }
+  .corsa-stato.annullata  { background: var(--dark3); color: var(--text3); }
+  .corsa-rotta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+  .corsa-rotta-arrow { color: var(--text3); }
+  .corsa-dettagli { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+  .corsa-det { font-size: 11px; color: var(--text3); }
+  .corsa-det strong { color: var(--text2); }
+  .corsa-footer { display: flex; align-items: center; justify-content: space-between; }
+  .corsa-importo { font-size: 16px; font-weight: 700; color: var(--gold); }
+  .corsa-margine { font-size: 12px; color: var(--success); }
+  .corsa-actions { display: flex; gap: 6px; }
+  .btn-completa { padding: 7px 12px; background: var(--success); color: #fff; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .btn-edit-c { padding: 7px 10px; background: transparent; color: var(--text3); border: 1px solid var(--border); border-radius: 8px; font-size: 12px; cursor: pointer; }
+
+  .btn-add-corsa { width: 100%; padding: 13px; background: transparent; border: 1px dashed var(--gold-dark); border-radius: var(--radius); color: var(--gold); font-size: 14px; font-weight: 600; cursor: pointer; margin-bottom: 14px; }
+
+  /* OVERLAYS */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 50; align-items: flex-end; justify-content: center; }
+  .overlay.show { display: flex; }
+  .sheet { background: var(--dark2); border-radius: 22px 22px 0 0; padding: 10px 20px 40px; width: 100%; max-width: 480px; border-top: 1px solid var(--border2); max-height: 92vh; overflow-y: auto; }
+  .sheet-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 12px auto 20px; }
+  .sheet h3 { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .sheet p { font-size: 13px; color: var(--text3); margin-bottom: 16px; }
+  .field-label { font-size: 11px; color: var(--text3); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .field-input { width: 100%; padding: 13px 16px; border: 1px solid var(--border); border-radius: 12px; font-size: 15px; outline: none; background: var(--dark3); color: var(--text); margin-bottom: 12px; }
+  .field-input:focus { border-color: var(--gold); }
+  .field-select { width: 100%; padding: 13px 16px; border: 1px solid var(--border); border-radius: 12px; font-size: 15px; outline: none; background: var(--dark3); color: var(--text); margin-bottom: 12px; appearance: none; }
+  .field-select:focus { border-color: var(--gold); }
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .btn-gold { width: 100%; padding: 14px; background: var(--gold); color: var(--black); border: none; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 4px; }
+  .btn-success { width: 100%; padding: 14px; background: var(--success); color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 4px; }
+  .btn-danger { width: 100%; padding: 12px; background: transparent; color: var(--danger); border: 1px solid #3A2020; border-radius: 12px; font-size: 14px; cursor: pointer; margin-top: 8px; }
+  .btn-cancel { width: 100%; padding: 12px; background: transparent; color: var(--text3); border: none; font-size: 15px; cursor: pointer; margin-top: 6px; }
+
+  /* COSTI BOX */
+  .costi-box { background: var(--dark3); border-radius: 12px; padding: 14px; border: 1px solid var(--border); margin-bottom: 14px; }
+  .costi-title { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+  .costi-row { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .costi-row:last-child { border-bottom: none; font-weight: 700; padding-top: 10px; font-size: 15px; }
+  .costi-label { color: var(--text3); }
+  .costi-val { color: var(--text); }
+  .costi-val.green { color: var(--success); font-size: 17px; }
+  .costi-val.red { color: var(--danger); }
+
+  /* REPORT */
+  .period-filter { display: flex; gap: 6px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+  .period-filter::-webkit-scrollbar { display: none; }
+  .period-btn { flex-shrink: 0; padding: 7px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--dark); color: var(--text3); }
+  .period-btn.active { background: var(--gold); color: var(--black); border-color: var(--gold); }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+  .stat-card { background: var(--dark); border-radius: var(--radius); padding: 14px; border: 1px solid var(--border); }
+  .stat-card .s-label { font-size: 10px; color: var(--text3); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .stat-card .s-value { font-size: 20px; font-weight: 700; color: var(--text); }
+  .stat-card .s-value.gold { color: var(--gold); }
+  .stat-card .s-value.green { color: var(--success); }
+  .stat-card .s-value.info { color: var(--info); }
+
+  .highlight { border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; border: 1px solid; }
+  .highlight.gold { background: #1A1500; border-color: #3A3000; }
+  .highlight.green { background: #0D1A12; border-color: #1A3A24; }
+  .highlight.red { background: #1A0D0D; border-color: #3A1A1A; }
+  .highlight .icon { font-size: 22px; }
+  .highlight .h-label { font-size: 10px; color: var(--text3); margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .highlight .h-value { font-size: 14px; font-weight: 600; }
+  .highlight.gold .h-value { color: var(--gold); }
+  .highlight.green .h-value { color: var(--success); }
+  .highlight.red .h-value { color: var(--danger); }
+
+  .report-list { background: var(--dark); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; margin-bottom: 10px; }
+  .report-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .report-row:last-child { border-bottom: none; }
+  .r-data { font-size: 11px; color: var(--gold); font-weight: 700; }
+  .r-cliente { font-size: 13px; font-weight: 600; color: var(--text); margin: 2px 0; }
+  .r-rotta { font-size: 11px; color: var(--text3); }
+  .r-importo { font-size: 15px; font-weight: 700; color: var(--gold); text-align: right; }
+  .r-margine { font-size: 11px; color: var(--success); text-align: right; margin-top: 2px; }
+
+  /* AGENDA */
+  .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .cal-nav-btn { background: var(--dark); border: 1px solid var(--border); color: var(--text); border-radius: 10px; padding: 8px 14px; font-size: 18px; cursor: pointer; }
+  .cal-week-label { font-size: 13px; font-weight: 700; color: var(--text); text-align: center; }
+  .cal-week-label span { display: block; font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+  .agenda-stat-bar { display: flex; gap: 8px; margin-bottom: 14px; }
+  .agenda-stat { flex: 1; background: var(--dark); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; text-align: center; }
+  .agenda-stat-val { font-size: 18px; font-weight: 700; color: var(--text); }
+  .agenda-stat-lbl { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+
+  .agenda-giorno { margin-bottom: 16px; }
+  .agenda-giorno-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .agenda-giorno-data { font-size: 13px; font-weight: 700; color: var(--text); }
+  .agenda-oggi-badge { font-size: 10px; font-weight: 700; color: var(--gold); background: #1A1500; border: 1px solid var(--gold-dark); border-radius: 6px; padding: 2px 8px; }
+  .agenda-giorno-line { flex: 1; height: 1px; background: var(--border); }
+  .agenda-vuoto { font-size: 12px; color: var(--text3); padding: 8px 0; font-style: italic; }
+
+  .agenda-corsa { background: var(--dark); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+  .agenda-corsa:active { border-color: var(--gold); }
+  .agenda-ora { font-size: 16px; font-weight: 800; color: var(--gold); width: 52px; flex-shrink: 0; }
+  .agenda-info { flex: 1; }
+  .agenda-cliente { font-size: 14px; font-weight: 700; color: var(--text); }
+  .agenda-rotta { font-size: 11px; color: var(--text2); margin-top: 2px; }
+  .agenda-serv { font-size: 10px; color: var(--text3); margin-top: 2px; }
+  .agenda-importo { font-size: 15px; font-weight: 700; color: var(--gold); }
+  .agenda-online { font-size: 11px; color: var(--info); margin-top: 2px; }
+
+  /* PIN */
+  .pin-dots { display: flex; gap: 14px; justify-content: center; margin: 24px 0 28px; }
+  .pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); }
+  .pin-dot.filled { background: var(--gold); border-color: var(--gold); }
+  .pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .pin-btn { background: var(--dark3); border: 1px solid var(--border); border-radius: 14px; padding: 18px; font-size: 22px; font-weight: 600; color: var(--text); cursor: pointer; text-align: center; }
+  .pin-btn:active { border-color: var(--gold); }
+  .pin-error { color: var(--danger); font-size: 13px; text-align: center; margin-top: 12px; }
+
+  /* ADMIN */
+  .admin-section { margin-bottom: 16px; }
+  .admin-title { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
+  .admin-card { background: var(--dark); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; margin-bottom: 10px; }
+  .admin-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-bottom: 1px solid var(--border); }
+  .admin-row:last-child { border-bottom: none; }
+  .admin-row-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .admin-row-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .admin-row-val { font-size: 15px; font-weight: 700; color: var(--gold); }
+
+  #toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark2); color: var(--text); border: 1px solid var(--gold); border-radius: 20px; padding: 11px 22px; font-size: 13px; opacity: 0; transition: all 0.22s ease; pointer-events: none; white-space: nowrap; z-index: 200; }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast.undo { border-color: var(--danger); color: var(--danger); }
+
+  .empty-state { padding: 32px 16px; text-align: center; color: var(--text3); font-size: 14px; }
+  .empty-icon { font-size: 40px; margin-bottom: 10px; }
+
+  #loading { position: fixed; inset: 0; background: var(--black); display: flex; align-items: center; justify-content: center; z-index: 300; flex-direction: column; gap: 16px; }
+  .loading-logo { font-size: 20px; font-weight: 800; letter-spacing: 0.14em; background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .spinner { width: 28px; height: 28px; border: 2px solid var(--border); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="loading-logo">✦ VED</div><div class="spinner"></div></div>
+
+<!-- OVERLAY CORSA -->
+<div class="overlay" id="corsa-overlay">
+  <div class="sheet"><div class="sheet-handle"></div>
+    <h3 id="corsa-title">Nuova corsa</h3><p id="corsa-sub">Registra una corsa manualmente</p>
+    <div class="field-label">Cliente</div><input class="field-input" type="text" id="c-cliente" placeholder="Es. Marco Rossi">
+    <div class="field-label">Telefono</div><input class="field-input" type="tel" id="c-telefono" placeholder="+39 347 1234567" inputmode="tel">
+    <div class="field-label">Tipo di servizio</div>
+    <select class="field-select" id="c-servizio">
+      <option value="Trasferimento Aeroporto">✈️ Trasferimento Aeroporto</option>
+      <option value="Transfer Business">🏨 Transfer Business</option>
+      <option value="Servizio Serale">🌙 Servizio Serale & Eventi</option>
+      <option value="City Tour">🗺️ City Tour Privato</option>
+      <option value="Altro">📍 Altro</option>
+    </select>
+    <div class="row-2">
+      <div><div class="field-label">Data</div><input class="field-input" type="date" id="c-data"></div>
+      <div><div class="field-label">Ora</div><input class="field-input" type="time" id="c-ora"></div>
+    </div>
+    <div class="field-label">Partenza</div><input class="field-input" type="text" id="c-partenza" placeholder="Es. Mestre, Stazione">
+    <div class="field-label">Destinazione</div><input class="field-input" type="text" id="c-destinazione" placeholder="Es. Aeroporto Marco Polo">
+    <div class="field-label">Importo (€)</div><input class="field-input" type="number" id="c-importo" inputmode="decimal" placeholder="Es. 120">
+    <div class="field-label">Km percorsi (opzionale)</div><input class="field-input" type="number" id="c-km" inputmode="decimal" placeholder="Es. 45">
+    <div class="field-label">Note (opzionale)</div><input class="field-input" type="text" id="c-note" placeholder="Es. numero volo, richieste speciali...">
+    <button class="btn-gold" onclick="salvaCorsa()">Salva corsa</button>
+    <button class="btn-danger" id="btn-elimina-corsa" onclick="eliminaCorsa()" style="display:none">Elimina corsa</button>
+    <button class="btn-cancel" onclick="chiudiOverlay('corsa-overlay')">Annulla</button>
+  </div>
+</div>
+
+<!-- OVERLAY COMPLETA CORSA -->
+<div class="overlay" id="completa-overlay">
+  <div class="sheet"><div class="sheet-handle"></div>
+    <h3>Completa la corsa</h3><p id="completa-sub">Inserisci i costi per calcolare il margine</p>
+    <div class="costi-box" id="completa-riepilogo"></div>
+    <div class="field-label">Importo finale incassato (€)</div><input class="field-input" type="number" id="comp-importo" inputmode="decimal">
+    <div class="field-label">Costo carburante (€)</div><input class="field-input" type="number" id="comp-carburante" inputmode="decimal" placeholder="Es. 18" oninput="aggiornaMarginePreview()">
+    <div class="field-label">Pedaggi autostrada (€)</div><input class="field-input" type="number" id="comp-pedaggi" inputmode="decimal" placeholder="Es. 6" oninput="aggiornaMarginePreview()">
+    <div class="field-label">Altri costi (€)</div><input class="field-input" type="number" id="comp-altri" inputmode="decimal" placeholder="Es. parcheggio, sosta..." oninput="aggiornaMarginePreview()">
+    <div class="field-label">Km percorsi</div><input class="field-input" type="number" id="comp-km" inputmode="decimal" placeholder="Es. 45">
+    <div class="costi-box" id="margine-preview" style="display:none">
+      <div class="costi-row"><span class="costi-label">Incasso</span><span class="costi-val" id="mp-incasso">—</span></div>
+      <div class="costi-row"><span class="costi-label">Costi totali</span><span class="costi-val red" id="mp-costi">—</span></div>
+      <div class="costi-row"><span class="costi-label">Margine netto</span><span class="costi-val green" id="mp-margine">—</span></div>
+    </div>
+    <button class="btn-success" onclick="confermaCompleta()">✓ Segna come completata</button>
+    <button class="btn-cancel" onclick="chiudiOverlay('completa-overlay')">Annulla</button>
+  </div>
+</div>
+
+<!-- OVERLAY PIN -->
+<div class="overlay" id="pin-overlay">
+  <div class="sheet"><div class="sheet-handle"></div>
+    <h3>Area Admin</h3><p>Inserisci il PIN per accedere</p>
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
+    </div>
+    <div class="pin-grid">
+      <button class="pin-btn" onclick="pinPress('1')">1</button><button class="pin-btn" onclick="pinPress('2')">2</button><button class="pin-btn" onclick="pinPress('3')">3</button>
+      <button class="pin-btn" onclick="pinPress('4')">4</button><button class="pin-btn" onclick="pinPress('5')">5</button><button class="pin-btn" onclick="pinPress('6')">6</button>
+      <button class="pin-btn" onclick="pinPress('7')">7</button><button class="pin-btn" onclick="pinPress('8')">8</button><button class="pin-btn" onclick="pinPress('9')">9</button>
+      <button class="pin-btn"></button><button class="pin-btn" onclick="pinPress('0')">0</button><button class="pin-btn" style="font-size:16px;color:var(--text3)" onclick="pinDel()">⌫</button>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+    <button class="btn-cancel" onclick="chiudiOverlay('pin-overlay')">Annulla</button>
+  </div>
+</div>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div><div class="salon-name">✦ VENICE EXECUTIVE</div><div class="salon-sub">Driver Management</div></div>
+  <span class="top-date" id="today-label"></span>
+</div>
+
+<!-- NAV -->
+<div class="nav-tabs">
+  <button class="nav-tab active" id="tab-oggi" onclick="showScreen('oggi')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Oggi
+  </button>
+  <button class="nav-tab" id="tab-agenda" onclick="showScreen('agenda')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Agenda
+  </button>
+  <button class="nav-tab" id="tab-corse" onclick="showScreen('corse')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+    Corse
+  </button>
+  <button class="nav-tab" id="tab-report" onclick="showScreen('report')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    Report
+  </button>
+  <button class="nav-tab" id="tab-admin" onclick="apriAdmin()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
+    Admin
+  </button>
+</div>
+
+<!-- OGGI -->
+<div id="screen-oggi" class="screen active">
+  <div class="day-total">
+    <div><div class="label">Incasso oggi</div><div class="value" id="oggi-incasso">0,00 €</div></div>
+    <div style="text-align:right"><div class="label">Margine netto</div><div class="profit" id="oggi-margine">0,00 €</div></div>
+  </div>
+  <div class="stat-mini-grid">
+    <div class="stat-mini"><div class="stat-mini-val" id="oggi-corse">0</div><div class="stat-mini-lbl">Corse</div></div>
+    <div class="stat-mini"><div class="stat-mini-val" id="oggi-km">0</div><div class="stat-mini-lbl">Km</div></div>
+    <div class="stat-mini"><div class="stat-mini-val" id="oggi-pending">0</div><div class="stat-mini-lbl">In attesa</div></div>
+  </div>
+  <div class="cat-label">Corse di oggi</div>
+  <div id="oggi-list"><div class="empty-state"><div class="empty-icon">🚗</div>Nessuna corsa registrata oggi</div></div>
+  <button class="btn-add-corsa" onclick="apriNuovaCorsa()">+ Registra corsa manuale</button>
+</div>
+
+<!-- AGENDA -->
+<div id="screen-agenda" class="screen">
+  <div class="cal-nav">
+    <button class="cal-nav-btn" onclick="cambiaSettimana(-1)">‹</button>
+    <div class="cal-week-label">Prenotazioni<span id="agenda-range"></span></div>
+    <button class="cal-nav-btn" onclick="cambiaSettimana(1)">›</button>
+  </div>
+  <div class="agenda-stat-bar" id="agenda-stats"></div>
+  <div id="agenda-container"></div>
+</div>
+
+<!-- CORSE -->
+<div id="screen-corse" class="screen">
+  <button class="btn-add-corsa" onclick="apriNuovaCorsa()">+ Registra corsa manuale</button>
+  <div id="corse-container"></div>
+</div>
+
+<!-- REPORT -->
+<div id="screen-report" class="screen">
+  <div class="period-filter">
+    <button class="period-btn active" onclick="setPeriodo('oggi',this)">Oggi</button>
+    <button class="period-btn" onclick="setPeriodo('settimana',this)">Settimana</button>
+    <button class="period-btn" onclick="setPeriodo('mese',this)">Mese</button>
+    <button class="period-btn" onclick="setPeriodo('anno',this)">Anno</button>
+    <button class="period-btn" onclick="setPeriodo('tutto',this)">Totale</button>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="s-label">Incasso</div><div class="s-value gold" id="r-incasso">—</div></div>
+    <div class="stat-card"><div class="s-label">Margine netto</div><div class="s-value green" id="r-margine">—</div></div>
+    <div class="stat-card"><div class="s-label">N° Corse</div><div class="s-value" id="r-corse">—</div></div>
+    <div class="stat-card"><div class="s-label">Km totali</div><div class="s-value info" id="r-km">—</div></div>
+  </div>
+  <div class="highlight gold"><span class="icon">💰</span><div><div class="h-label">Incasso medio per corsa</div><div class="h-value" id="r-media">—</div></div></div>
+  <div class="highlight green"><span class="icon">📊</span><div><div class="h-label">Margine medio per corsa</div><div class="h-value" id="r-margine-medio">—</div></div></div>
+  <div class="highlight red"><span class="icon">⛽</span><div><div class="h-label">Costi totali (carburante + pedaggi)</div><div class="h-value" id="r-costi">—</div></div></div>
+  <div class="cat-label">Corse del periodo</div>
+  <div class="report-list" id="report-list"><div class="empty-state">Nessuna corsa completata nel periodo</div></div>
+</div>
+
+<!-- ADMIN -->
+<div id="screen-admin" class="screen">
+  <div class="admin-section">
+    <div class="admin-title">Statistiche generali</div>
+    <div class="admin-card" id="admin-stats"></div>
+  </div>
+  <div class="admin-section">
+    <div class="admin-title">Operazioni</div>
+    <div class="admin-card">
+      <div class="admin-row" onclick="if(confirm('Eliminare tutte le corse completate?'))resetCorse()">
+        <div><div class="admin-row-name" style="color:var(--danger)">Cancella storico corse</div><div class="admin-row-sub">Elimina tutte le corse completate</div></div>
+        <span style="color:var(--text3);font-size:16px">›</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  // ---- CONFIG ----
+  const SB_URL = 'https://hteopuanhychwuqysckl.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZW9wdWFuaHljaHd1cXlzY2tsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMTM2NjUsImV4cCI6MjA5Mzg4OTY2NX0.LEo3tiZWrCOexDaa1sW4-0mOGZe3i00vUrWzzpa_EBc';
+  const CID = 3; // Venice Executive Driver
+  const ADMIN_PIN = '4752';
+  const H = { 'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY };
+
+  async function sbGet(t,p){const r=await fetch(SB_URL+'/rest/v1/'+t+'?'+(p||''),{headers:{...H,'Prefer':'return=representation'}});return await r.json();}
+  async function sbInsert(t,d){const r=await fetch(SB_URL+'/rest/v1/'+t,{method:'POST',headers:{...H,'Prefer':'return=representation'},body:JSON.stringify(d)});return await r.json();}
+  async function sbUpdate(t,id,d){const r=await fetch(SB_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'PATCH',headers:{...H,'Prefer':'return=representation'},body:JSON.stringify(d)});return await r.json();}
+  async function sbDelete(t,id){await fetch(SB_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'DELETE',headers:H});}
+
+  let corse = [];
+  let corsaEditId = null;
+  let completaId = null;
+  let agendaOffset = 0;
+  let periodoRep = 'mese';
+  let pinBuffer = '';
+  let adminSbloccato = false;
+
+  const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+  const GIORNI = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+
+  function fmt(n){return parseFloat(n||0).toFixed(2).replace('.',',')+' €';}
+  function dateStr(d){return d.toISOString().split('T')[0];}
+  function fmtData(ds){const d=new Date(ds+'T12:00:00');return GIORNI[d.getDay()]+' '+d.getDate()+' '+MESI[d.getMonth()];}
+  function oggiStr(){return dateStr(new Date());}
+
+  let toastTimer;
+  function showToast(msg,tipo){const t=document.getElementById('toast');t.textContent=msg;t.className=tipo?'show '+tipo:'show';clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.className='';},2400);}
+  function chiudiOverlay(id){document.getElementById(id).classList.remove('show');}
+  function apriOverlay(id){document.getElementById(id).classList.add('show');}
+
+  function showScreen(name){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+    document.getElementById('screen-'+name).classList.add('active');
+    document.getElementById('tab-'+name).classList.add('active');
+    if(name==='oggi')   buildOggi();
+    if(name==='agenda') buildAgenda();
+    if(name==='corse')  buildCorse();
+    if(name==='report') aggiornaReport();
+    if(name==='admin')  buildAdmin();
+  }
+
+  async function init(){
+    const d=new Date();
+    document.getElementById('today-label').textContent=d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();
+    document.getElementById('c-data').value=dateStr(d);
+    try{
+      corse=await sbGet('corse','commerciante_id=eq.'+CID+'&order=data.desc,ora.desc');
+      buildOggi();
+      document.getElementById('loading').style.display='none';
+    }catch(e){
+      document.getElementById('loading').innerHTML='<p style="color:var(--danger);padding:20px;text-align:center">Errore connessione Supabase.</p>';
+    }
+  }
+
+  // ---- OGGI ----
+  function buildOggi(){
+    const oggi=oggiStr();
+    const corseOggi=corse.filter(c=>c.data===oggi);
+    const completate=corseOggi.filter(c=>c.stato==='completata');
+    const incasso=completate.reduce((s,c)=>s+parseFloat(c.importo||0),0);
+    const costiTot=completate.reduce((s,c)=>s+parseFloat(c.costo_carburante||0)+parseFloat(c.costo_pedaggi||0)+parseFloat(c.altri_costi||0),0);
+    const margine=incasso-costiTot;
+    const km=completate.reduce((s,c)=>s+parseFloat(c.km||0),0);
+    const pending=corseOggi.filter(c=>c.stato==='prenotata').length;
+
+    document.getElementById('oggi-incasso').textContent=fmt(incasso);
+    document.getElementById('oggi-margine').textContent=fmt(margine);
+    document.getElementById('oggi-corse').textContent=completate.length;
+    document.getElementById('oggi-km').textContent=Math.round(km);
+    document.getElementById('oggi-pending').textContent=pending;
+
+    if(!corseOggi.length){
+      document.getElementById('oggi-list').innerHTML='<div class="empty-state"><div class="empty-icon">🚗</div>Nessuna corsa oggi</div>';
+      return;
+    }
+    document.getElementById('oggi-list').innerHTML=corseOggi.map(c=>buildCorsaCard(c)).join('');
+  }
+
+  // ---- CORSA CARD ----
+  function buildCorsaCard(c){
+    const costi=parseFloat(c.costo_carburante||0)+parseFloat(c.costo_pedaggi||0)+parseFloat(c.altri_costi||0);
+    const margine=parseFloat(c.importo||0)-costi;
+    return '<div class="corsa-card '+c.stato+(c.da_online?' online':'')+'" onclick="apriModificaCorsa('+c.id+')">' +
+      '<div class="corsa-header"><div class="corsa-cliente">'+c.cliente+'</div><span class="corsa-stato '+c.stato+'">'+c.stato+'</span></div>' +
+      '<div class="corsa-rotta"><span>'+c.partenza+'</span><span class="corsa-rotta-arrow">→</span><span>'+c.destinazione+'</span></div>' +
+      '<div class="corsa-dettagli">' +
+        '<div class="corsa-det">📅 <strong>'+fmtData(c.data)+'</strong></div>' +
+        '<div class="corsa-det">🕐 <strong>'+c.ora+'</strong></div>' +
+        '<div class="corsa-det">🚗 <strong>'+c.servizio+'</strong></div>' +
+        (c.km?'<div class="corsa-det">📍 <strong>'+c.km+' km</strong></div>':'') +
+      '</div>' +
+      '<div class="corsa-footer">' +
+        '<div><div class="corsa-importo">'+fmt(c.importo)+'</div>' +
+        (c.stato==='completata'?'<div class="corsa-margine">Margine: '+fmt(margine)+'</div>':'')+'</div>' +
+        '<div class="corsa-actions">' +
+        (c.stato==='prenotata'?'<button class="btn-completa" onclick="event.stopPropagation();apriCompleta('+c.id+')">✓ Completa</button>':'') +
+        '<button class="btn-edit-c" onclick="event.stopPropagation();apriModificaCorsa('+c.id+')">✏️</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  // ---- AGENDA ----
+  function getLunedi(offset){const d=new Date(),day=d.getDay();d.setDate(d.getDate()+(day===0?-6:1-day)+offset*7);d.setHours(0,0,0,0);return d;}
+  function cambiaSettimana(dir){agendaOffset+=dir;buildAgenda();}
+
+  function buildAgenda(){
+    const lun=getLunedi(agendaOffset);
+    const dom=new Date(lun);dom.setDate(dom.getDate()+6);
+    const oggi=oggiStr();
+    document.getElementById('agenda-range').textContent=lun.getDate()+' '+MESI[lun.getMonth()]+' – '+dom.getDate()+' '+MESI[dom.getMonth()];
+
+    const dalStr=dateStr(lun),alStr=dateStr(dom);
+    const corseSettimana=corse.filter(c=>c.data>=dalStr&&c.data<=alStr&&c.stato!=='annullata').sort((a,b)=>a.data.localeCompare(b.data)||a.ora.localeCompare(b.ora));
+    const totIncasso=corseSettimana.filter(c=>c.stato==='completata').reduce((s,c)=>s+parseFloat(c.importo||0),0);
+    const nPrenotate=corseSettimana.filter(c=>c.stato==='prenotata').length;
+
+    document.getElementById('agenda-stats').innerHTML=
+      '<div class="agenda-stat"><div class="agenda-stat-val">'+corseSettimana.length+'</div><div class="agenda-stat-lbl">Totale</div></div>'+
+      '<div class="agenda-stat"><div class="agenda-stat-val" style="color:var(--gold)">'+nPrenotate+'</div><div class="agenda-stat-lbl">In attesa</div></div>'+
+      '<div class="agenda-stat"><div class="agenda-stat-val" style="color:var(--success)">'+fmt(totIncasso)+'</div><div class="agenda-stat-lbl">Incassato</div></div>';
+
+    let html='';
+    for(let i=0;i<7;i++){
+      const d=new Date(lun);d.setDate(d.getDate()+i);
+      const ds=dateStr(d);const isOggi=ds===oggi;
+      const corseG=corseSettimana.filter(c=>c.data===ds);
+      html+='<div class="agenda-giorno">';
+      html+='<div class="agenda-giorno-header"><div class="agenda-giorno-data">'+GIORNI[d.getDay()]+' '+d.getDate()+' '+MESI[d.getMonth()]+'</div>'+(isOggi?'<span class="agenda-oggi-badge">OGGI</span>':'')+'<div class="agenda-giorno-line"></div></div>';
+      if(!corseG.length){html+='<div class="agenda-vuoto">Nessuna corsa</div>';}
+      else{corseG.forEach(c=>{html+='<div class="agenda-corsa" onclick="apriModificaCorsa('+c.id+')">'+'<div class="agenda-ora">'+c.ora+'</div><div class="agenda-info"><div class="agenda-cliente">'+c.cliente+'</div><div class="agenda-rotta">'+c.partenza+' → '+c.destinazione+'</div><div class="agenda-serv">'+c.servizio+'</div>'+(c.da_online?'<div class="agenda-online">🌐 Prenotazione online</div>':'')+'</div><div><div class="agenda-importo">'+fmt(c.importo)+'</div></div></div>';});}
+      html+='</div>';
+    }
+    document.getElementById('agenda-container').innerHTML=html;
+  }
+
+  // ---- CORSE ----
+  function buildCorse(){
+    if(!corse.length){document.getElementById('corse-container').innerHTML='<div class="empty-state"><div class="empty-icon">🚗</div>Nessuna corsa registrata</div>';return;}
+    const sorted=corse.slice().sort((a,b)=>b.data.localeCompare(a.data)||b.ora.localeCompare(a.ora));
+    document.getElementById('corse-container').innerHTML=sorted.map(c=>buildCorsaCard(c)).join('');
+  }
+
+  // ---- NUOVA/MODIFICA CORSA ----
+  function apriNuovaCorsa(){
+    corsaEditId=null;
+    document.getElementById('corsa-title').textContent='Nuova corsa';
+    document.getElementById('corsa-sub').textContent='Registra una corsa manualmente';
+    ['c-cliente','c-telefono','c-partenza','c-destinazione','c-importo','c-km','c-note'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('c-data').value=oggiStr();
+    document.getElementById('c-ora').value='';
+    document.getElementById('c-servizio').value='Trasferimento Aeroporto';
+    document.getElementById('btn-elimina-corsa').style.display='none';
+    apriOverlay('corsa-overlay');
+  }
+
+  function apriModificaCorsa(id){
+    const c=corse.find(x=>x.id===id);if(!c)return;
+    corsaEditId=id;
+    document.getElementById('corsa-title').textContent='Modifica corsa';
+    document.getElementById('corsa-sub').textContent=c.cliente+' · '+fmtData(c.data);
+    document.getElementById('c-cliente').value=c.cliente||'';
+    document.getElementById('c-telefono').value=c.telefono||'';
+    document.getElementById('c-servizio').value=c.servizio||'Trasferimento Aeroporto';
+    document.getElementById('c-data').value=c.data||'';
+    document.getElementById('c-ora').value=c.ora||'';
+    document.getElementById('c-partenza').value=c.partenza||'';
+    document.getElementById('c-destinazione').value=c.destinazione||'';
+    document.getElementById('c-importo').value=c.importo||'';
+    document.getElementById('c-km').value=c.km||'';
+    document.getElementById('c-note').value=c.note||'';
+    document.getElementById('btn-elimina-corsa').style.display='block';
+    apriOverlay('corsa-overlay');
+  }
+
+  async function salvaCorsa(){
+    const cliente=document.getElementById('c-cliente').value.trim();
+    const data=document.getElementById('c-data').value;
+    const ora=document.getElementById('c-ora').value;
+    const partenza=document.getElementById('c-partenza').value.trim();
+    const destinazione=document.getElementById('c-destinazione').value.trim();
+    const importo=parseFloat(document.getElementById('c-importo').value)||0;
+    if(!cliente||!data||!ora||!partenza||!destinazione){showToast('Compila tutti i campi obbligatori','undo');return;}
+
+    const dati={
+      commerciante_id:CID,cliente,
+      telefono:document.getElementById('c-telefono').value.trim(),
+      servizio:document.getElementById('c-servizio').value,
+      data,ora,partenza,destinazione,importo,
+      km:parseFloat(document.getElementById('c-km').value)||0,
+      note:document.getElementById('c-note').value.trim(),
+      stato:'prenotata',da_online:false
+    };
+
+    if(corsaEditId){
+      await sbUpdate('corse',corsaEditId,dati);
+      const idx=corse.findIndex(x=>x.id===corsaEditId);
+      if(idx!==-1)corse[idx]={...corse[idx],...dati};
+    }else{
+      const nuova=await sbInsert('corse',dati);
+      if(nuova&&nuova[0])corse.unshift(nuova[0]);
+    }
+    chiudiOverlay('corsa-overlay');
+    buildOggi();showToast('✓ Corsa salvata');
+  }
+
+  async function eliminaCorsa(){
+    if(!confirm('Eliminare questa corsa?'))return;
+    await sbDelete('corse',corsaEditId);
+    corse=corse.filter(x=>x.id!==corsaEditId);
+    chiudiOverlay('corsa-overlay');buildOggi();buildCorse();
+    showToast('Corsa eliminata','undo');
+  }
+
+  // ---- COMPLETA CORSA ----
+  function apriCompleta(id){
+    const c=corse.find(x=>x.id===id);if(!c)return;
+    completaId=id;
+    document.getElementById('completa-sub').textContent=c.cliente+' · '+c.partenza+' → '+c.destinazione;
+    document.getElementById('comp-importo').value=c.importo||'';
+    document.getElementById('comp-carburante').value='';
+    document.getElementById('comp-pedaggi').value='';
+    document.getElementById('comp-altri').value='';
+    document.getElementById('comp-km').value=c.km||'';
+    document.getElementById('completa-riepilogo').innerHTML=
+      '<div class="costi-title">Riepilogo corsa</div>'+
+      '<div class="costi-row"><span class="costi-label">Cliente</span><span class="costi-val">'+c.cliente+'</span></div>'+
+      '<div class="costi-row"><span class="costi-label">Servizio</span><span class="costi-val">'+c.servizio+'</span></div>'+
+      '<div class="costi-row"><span class="costi-label">Data</span><span class="costi-val">'+fmtData(c.data)+' alle '+c.ora+'</span></div>'+
+      '<div class="costi-row"><span class="costi-label">Rotta</span><span class="costi-val">'+c.partenza+' → '+c.destinazione+'</span></div>';
+    document.getElementById('margine-preview').style.display='none';
+    apriOverlay('completa-overlay');
+  }
+
+  function aggiornaMarginePreview(){
+    const importo=parseFloat(document.getElementById('comp-importo').value)||0;
+    const carb=parseFloat(document.getElementById('comp-carburante').value)||0;
+    const ped=parseFloat(document.getElementById('comp-pedaggi').value)||0;
+    const altri=parseFloat(document.getElementById('comp-altri').value)||0;
+    const costiTot=carb+ped+altri;
+    const margine=importo-costiTot;
+    document.getElementById('margine-preview').style.display='block';
+    document.getElementById('mp-incasso').textContent=fmt(importo);
+    document.getElementById('mp-costi').textContent=fmt(costiTot);
+    document.getElementById('mp-margine').textContent=fmt(margine);
+    document.getElementById('mp-margine').style.color=margine>=0?'var(--success)':'var(--danger)';
+  }
+
+  async function confermaCompleta(){
+    const importo=parseFloat(document.getElementById('comp-importo').value)||0;
+    const carburante=parseFloat(document.getElementById('comp-carburante').value)||0;
+    const pedaggi=parseFloat(document.getElementById('comp-pedaggi').value)||0;
+    const altri=parseFloat(document.getElementById('comp-altri').value)||0;
+    const km=parseFloat(document.getElementById('comp-km').value)||0;
+    if(!importo){showToast('Inserisci l\'importo finale','undo');return;}
+    await sbUpdate('corse',completaId,{stato:'completata',importo,costo_carburante:carburante,costo_pedaggi:pedaggi,altri_costi:altri,km});
+    const idx=corse.findIndex(x=>x.id===completaId);
+    if(idx!==-1)corse[idx]={...corse[idx],stato:'completata',importo,costo_carburante:carburante,costo_pedaggi:pedaggi,altri_costi:altri,km};
+    chiudiOverlay('completa-overlay');buildOggi();buildCorse();
+    showToast('✓ Corsa completata · Margine: '+fmt(importo-carburante-pedaggi-altri));
+  }
+
+  // ---- REPORT ----
+  function setPeriodo(p,btn){periodoRep=p;document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');aggiornaReport();}
+
+  function filtraCorse(){
+    const ora=new Date(),oggi=new Date(ora.getFullYear(),ora.getMonth(),ora.getDate());
+    const completate=corse.filter(c=>c.stato==='completata');
+    return completate.filter(c=>{
+      const d=new Date(c.data+'T12:00:00');
+      if(periodoRep==='oggi')return d>=oggi;
+      if(periodoRep==='settimana'){const i=new Date(oggi);i.setDate(oggi.getDate()-(oggi.getDay()===0?6:oggi.getDay()-1));return d>=i;}
+      if(periodoRep==='mese')return d.getMonth()===ora.getMonth()&&d.getFullYear()===ora.getFullYear();
+      if(periodoRep==='anno')return d.getFullYear()===ora.getFullYear();
+      return true;
+    });
+  }
+
+  function aggiornaReport(){
+    const filtrate=filtraCorse();
+    if(!filtrate.length){
+      ['r-incasso','r-margine','r-corse','r-km','r-media','r-margine-medio','r-costi'].forEach(id=>document.getElementById(id).textContent='—');
+      document.getElementById('report-list').innerHTML='<div class="empty-state">Nessuna corsa completata nel periodo</div>';
+      return;
+    }
+    const totIncasso=filtrate.reduce((s,c)=>s+parseFloat(c.importo||0),0);
+    const totCosti=filtrate.reduce((s,c)=>s+parseFloat(c.costo_carburante||0)+parseFloat(c.costo_pedaggi||0)+parseFloat(c.altri_costi||0),0);
+    const totMargine=totIncasso-totCosti;
+    const totKm=filtrate.reduce((s,c)=>s+parseFloat(c.km||0),0);
+    const n=filtrate.length;
+
+    document.getElementById('r-incasso').textContent=fmt(totIncasso);
+    document.getElementById('r-margine').textContent=fmt(totMargine);
+    document.getElementById('r-corse').textContent=n;
+    document.getElementById('r-km').textContent=Math.round(totKm)+' km';
+    document.getElementById('r-media').textContent=fmt(totIncasso/n);
+    document.getElementById('r-margine-medio').textContent=fmt(totMargine/n)+' ('+Math.round((totMargine/totIncasso)*100)+'%)';
+    document.getElementById('r-costi').textContent=fmt(totCosti);
+
+    const sorted=filtrate.slice().sort((a,b)=>b.data.localeCompare(a.data));
+    document.getElementById('report-list').innerHTML=sorted.map(c=>{
+      const costi=parseFloat(c.costo_carburante||0)+parseFloat(c.costo_pedaggi||0)+parseFloat(c.altri_costi||0);
+      const marg=parseFloat(c.importo||0)-costi;
+      return '<div class="report-row"><div><div class="r-data">'+fmtData(c.data)+' · '+c.ora+'</div><div class="r-cliente">'+c.cliente+'</div><div class="r-rotta">'+c.partenza+' → '+c.destinazione+'</div></div><div><div class="r-importo">'+fmt(c.importo)+'</div><div class="r-margine">'+fmt(marg)+'</div></div></div>';
+    }).join('');
+  }
+
+  // ---- ADMIN ----
+  function apriAdmin(){if(adminSbloccato){showScreen('admin');return;}pinBuffer='';aggiornaPin();document.getElementById('pin-error').textContent='';apriOverlay('pin-overlay');}
+  function pinPress(n){if(!n||pinBuffer.length>=4)return;pinBuffer+=n;aggiornaPin();if(pinBuffer.length===4){setTimeout(()=>{if(pinBuffer===ADMIN_PIN){chiudiOverlay('pin-overlay');adminSbloccato=true;showScreen('admin');}else{document.getElementById('pin-error').textContent='PIN errato.';pinBuffer='';aggiornaPin();}},200);}}
+  function pinDel(){pinBuffer=pinBuffer.slice(0,-1);aggiornaPin();}
+  function aggiornaPin(){for(let i=0;i<4;i++)document.getElementById('d'+i).classList.toggle('filled',i<pinBuffer.length);}
+
+  function buildAdmin(){
+    const completate=corse.filter(c=>c.stato==='completata');
+    const totIncasso=completate.reduce((s,c)=>s+parseFloat(c.importo||0),0);
+    const totCosti=completate.reduce((s,c)=>s+parseFloat(c.costo_carburante||0)+parseFloat(c.costo_pedaggi||0)+parseFloat(c.altri_costi||0),0);
+    const totKm=completate.reduce((s,c)=>s+parseFloat(c.km||0),0);
+    const online=corse.filter(c=>c.da_online).length;
+    document.getElementById('admin-stats').innerHTML=
+      '<div class="admin-row"><div><div class="admin-row-name">Corse totali registrate</div></div><div class="admin-row-val">'+corse.length+'</div></div>'+
+      '<div class="admin-row"><div><div class="admin-row-name">Corse completate</div></div><div class="admin-row-val">'+completate.length+'</div></div>'+
+      '<div class="admin-row"><div><div class="admin-row-name">Prenotazioni online</div></div><div class="admin-row-val">'+online+'</div></div>'+
+      '<div class="admin-row"><div><div class="admin-row-name">Incasso totale storico</div></div><div class="admin-row-val" style="color:var(--gold)">'+fmt(totIncasso)+'</div></div>'+
+      '<div class="admin-row"><div><div class="admin-row-name">Costi totali storici</div></div><div class="admin-row-val" style="color:var(--danger)">'+fmt(totCosti)+'</div></div>'+
+      '<div class="admin-row"><div><div class="admin-row-name">Km totali percorsi</div></div><div class="admin-row-val" style="color:var(--info)">'+Math.round(totKm)+' km</div></div>';
+  }
+
+  async function resetCorse(){
+    const ids=corse.filter(c=>c.stato==='completata').map(c=>c.id);
+    for(const id of ids)await sbDelete('corse',id);
+    corse=corse.filter(c=>c.stato!=='completata');
+    buildAdmin();showToast('Storico eliminato','undo');
+  }
+
+  document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>
